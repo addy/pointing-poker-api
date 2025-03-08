@@ -22,12 +22,10 @@ pointing-poker-api/
 │   ├── models.rs                # Models module declaration
 │   ├── routes.rs                # Routes module declaration with router creation
 │   ├── state.rs                 # Application state
-│   │
 │   ├── models/                  # Models implementation
 │   │   ├── room.rs              # Room model
 │   │   ├── user.rs              # User model
 │   │   └── vote.rs              # Vote model
-│   │
 │   └── routes/                  # Route handlers implementation
 │       ├── room.rs              # Room management endpoints
 │       ├── vote.rs              # Voting endpoints
