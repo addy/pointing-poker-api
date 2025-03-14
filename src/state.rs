@@ -6,32 +6,40 @@ use tokio::sync::broadcast;
 // Type alias for room events broadcast
 pub type RoomEventSender = broadcast::Sender<RoomEvent>;
 
-// Define room events for WebSocket communication
+// Define room events structure
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "eventType", content = "payload")]
 pub enum RoomEvent {
-    UserJoined {
-        room_id: String,
-        user_id: String,
-        user_name: String,
-    },
-    UserLeft {
-        room_id: String,
-        user_id: String,
-    },
-    VoteSubmitted {
-        room_id: String,
-        user_id: String,
-    },
-    VotesRevealed {
-        room_id: String,
-    },
-    VotesReset {
-        room_id: String,
-    },
-    RoomUpdated {
-        room_id: String,
-    },
+    UserJoined(crate::models::user::User),
+    UserLeft(UserLeftPayload),
+    VoteSubmitted(UserLeftPayload), // Reusing the simple UUID payload
+    VotesRevealed(VotesRevealedPayload),
+    VotesReset(VotesResetPayload),
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserLeftPayload {
+    pub user_id: uuid::Uuid,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VotesRevealedPayload {
+    pub votes: Vec<VoteWithUser>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoteWithUser {
+    pub user_id: uuid::Uuid,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VotesResetPayload {}
 
 // Application state shared across handlers
 #[derive(Clone)]

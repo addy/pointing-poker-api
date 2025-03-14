@@ -1,13 +1,13 @@
 use crate::error::AppError;
 use crate::models::room::RoomId;
 use crate::models::user::UserId;
-use crate::state::{AppState, RoomEvent};
+use crate::state::AppState;
 use axum::{
     extract::{Path, State, WebSocketUpgrade, connect_info::ConnectInfo, ws},
     response::IntoResponse,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
-use serde_json::json;
+// Removed unused import
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -52,61 +52,17 @@ pub async fn ws_handler(
         // Handle messages from client
         let mut send_task = tokio::spawn(async move {
             while let Ok(msg) = rx.recv().await {
-                // Format the event into proper JSON structure based on event type
-                let formatted_event = match msg {
-                    RoomEvent::UserJoined {
-                        room_id,
-                        user_id,
-                        user_name,
-                    } => {
-                        json!({
-                            "event": "user_joined",
-                            "room_id": room_id,
-                            "user_id": user_id,
-                            "user_name": user_name
-                        })
+                // The event is already properly typed and structured
+                // Serialize the RoomEvent enum directly - it has the correct tag/content structure
+                if let Ok(serialized_event) = serde_json::to_string(&msg) {
+                    // Send serialized event to client
+                    if sender
+                        .send(ws::Message::Text(serialized_event.into()))
+                        .await
+                        .is_err()
+                    {
+                        break;
                     }
-                    RoomEvent::UserLeft { room_id, user_id } => {
-                        json!({
-                            "event": "user_left",
-                            "room_id": room_id,
-                            "user_id": user_id
-                        })
-                    }
-                    RoomEvent::VoteSubmitted { room_id, user_id } => {
-                        json!({
-                            "event": "vote_submitted",
-                            "room_id": room_id,
-                            "user_id": user_id
-                        })
-                    }
-                    RoomEvent::VotesRevealed { room_id } => {
-                        json!({
-                            "event": "votes_revealed",
-                            "room_id": room_id
-                        })
-                    }
-                    RoomEvent::VotesReset { room_id } => {
-                        json!({
-                            "event": "votes_reset",
-                            "room_id": room_id
-                        })
-                    }
-                    RoomEvent::RoomUpdated { room_id } => {
-                        json!({
-                            "event": "room_updated",
-                            "room_id": room_id
-                        })
-                    }
-                };
-
-                // Send formatted event to client
-                if sender
-                    .send(ws::Message::Text(formatted_event.to_string().into()))
-                    .await
-                    .is_err()
-                {
-                    break;
                 }
             }
         });
