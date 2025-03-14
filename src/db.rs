@@ -241,7 +241,7 @@ impl Database {
                     .map_err(|e| AppError::DatabaseError(format!("Invalid UUID: {}", e)))?,
             );
 
-            let vote = Vote::from_string(&vote_str).map_err(|e| AppError::DatabaseError(e))?;
+            let vote = Vote::from_string(&vote_str).map_err(AppError::DatabaseError)?;
 
             vote_map.insert(user_id, vote);
         }

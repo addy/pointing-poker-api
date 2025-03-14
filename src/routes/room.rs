@@ -24,12 +24,7 @@ pub async fn create_room(
     state.db.create_room(&room).await?;
 
     // Create event channel for this room
-    let event_sender = state.ensure_room_event_sender(&room_id);
-
-    // Notify that a room was created
-    let _ = event_sender.send(RoomEvent::RoomUpdated {
-        room_id: room_id.to_string(),
-    });
+    let _ = state.ensure_room_event_sender(&room_id);
 
     // Return the newly created room
     Ok(Json(room))
@@ -74,19 +69,13 @@ pub async fn join_room(
     // Create user
     let is_observer = request.is_observer.unwrap_or(false);
     let user = User::new(request.name, is_observer);
-    let user_id = user.id.clone();
-    let user_name = user.name.clone();
 
     // Add user to room in database
     state.db.add_user(&user, &room_id).await?;
 
     // Notify about new user
     let event_sender = state.ensure_room_event_sender(&room_id);
-    let _ = event_sender.send(RoomEvent::UserJoined {
-        room_id: room_id.to_string(),
-        user_id: user_id.to_string(),
-        user_name,
-    });
+    let _ = event_sender.send(RoomEvent::UserJoined(user.clone()));
 
     Ok(Json(user))
 }
@@ -112,10 +101,9 @@ pub async fn leave_room(
 
     // Notify about user leaving
     if let Some(tx) = state.get_room_event_sender(&room_id) {
-        let _ = tx.send(RoomEvent::UserLeft {
-            room_id: room_id.to_string(),
-            user_id: user_id.to_string(),
-        });
+        let _ = tx.send(RoomEvent::UserLeft(crate::state::UserLeftPayload {
+            user_id: user_id.0,
+        }));
     }
 
     // Check if this was the room owner

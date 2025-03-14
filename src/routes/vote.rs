@@ -37,17 +37,16 @@ pub async fn submit_vote(
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
     // Parse vote
-    let vote = Vote::from_string(&payload.vote.value).map_err(|e| AppError::BadRequest(e))?;
+    let vote = Vote::from_string(&payload.vote.value).map_err(AppError::BadRequest)?;
 
     // Add vote to database (validation happens in the model through db.add_vote)
     state.db.add_vote(&room_id, &user_id, &vote).await?;
 
     // Notify about vote submission
     if let Some(tx) = state.get_room_event_sender(&room_id) {
-        let _ = tx.send(RoomEvent::VoteSubmitted {
-            room_id: room_id.to_string(),
-            user_id: user_id.to_string(),
-        });
+        let _ = tx.send(RoomEvent::VoteSubmitted(crate::state::UserLeftPayload {
+            user_id: user_id.0,
+        }));
     }
 
     Ok(Json(VoteResponse {
@@ -75,9 +74,24 @@ pub async fn reveal_votes(
 
     // Notify about votes being revealed
     if let Some(tx) = state.get_room_event_sender(&room_id) {
-        let _ = tx.send(RoomEvent::VotesRevealed {
-            room_id: room_id.to_string(),
-        });
+        // Get room with votes and users
+        let room = state.db.get_room(&room_id).await?
+            .ok_or_else(|| AppError::NotFound("Room not found".to_string()))?;
+        
+        // Create vote payloads from room data
+        let mut vote_payloads = Vec::new();
+        for (user_id, vote) in room.votes.iter() {
+            if room.users.contains_key(user_id) {
+                vote_payloads.push(crate::state::VoteWithUser {
+                    user_id: user_id.0,
+                    value: vote.value().unwrap_or_else(|| "hidden".to_string()),
+                });
+            }
+        }
+            
+        let _ = tx.send(RoomEvent::VotesRevealed(crate::state::VotesRevealedPayload {
+            votes: vote_payloads,
+        }));
     }
 
     Ok(Json(VoteResponse {
@@ -105,9 +119,7 @@ pub async fn reset_votes(
 
     // Notify about votes being reset
     if let Some(tx) = state.get_room_event_sender(&room_id) {
-        let _ = tx.send(RoomEvent::VotesReset {
-            room_id: room_id.to_string(),
-        });
+        let _ = tx.send(RoomEvent::VotesReset(crate::state::VotesResetPayload {}));
     }
 
     Ok(Json(VoteResponse {

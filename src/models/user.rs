@@ -9,13 +9,15 @@ impl UserId {
         Self(Uuid::new_v4())
     }
 
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-
     pub fn from_string(s: &str) -> Result<Self, uuid::Error> {
         let uuid = Uuid::parse_str(s)?;
         Ok(Self(uuid))
+    }
+}
+
+impl std::fmt::Display for UserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -26,6 +28,7 @@ impl Default for UserId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: UserId,
     pub name: String,
@@ -43,6 +46,7 @@ impl User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateUserRequest {
     pub name: String,
     pub is_observer: Option<bool>,
