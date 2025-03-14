@@ -18,6 +18,7 @@ pub struct VoteResponse {
 
 #[derive(Deserialize)]
 pub struct SubmitVoteRequest {
+    #[serde(rename = "userId")]
     pub user_id: String,
     pub vote: VoteRequest,
 }
@@ -130,5 +131,6 @@ pub async fn reset_votes(
 
 #[derive(Deserialize)]
 pub struct AdminActionRequest {
+    #[serde(rename = "userId")]
     pub user_id: String,
 }

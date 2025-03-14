@@ -14,7 +14,10 @@ pub async fn create_room(
     Json(request): Json<CreateRoomRequest>,
 ) -> Result<Json<Room>, AppError> {
     // Create user if creator name was provided
-    let owner = request.creator_name.map(|name| User::new(name, false));
+    let owner = request.creator_name.map(|name| {
+        let is_observer = request.is_observer.unwrap_or(false);
+        User::new(name, is_observer)
+    });
 
     // Create a new room
     let room = Room::new(request.name.clone(), owner);

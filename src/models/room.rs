@@ -71,6 +71,7 @@ impl Room {
 pub struct CreateRoomRequest {
     pub name: String,
     pub creator_name: Option<String>,
+    pub is_observer: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
